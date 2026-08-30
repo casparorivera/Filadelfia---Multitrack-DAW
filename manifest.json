@@ -1,0 +1,12 @@
+{
+  "name": "Filadelfia Multitrack DAW",
+  "short_name": "Filadelfia DAW",
+  "description": "Reproductor multitrack para las secuencias del Ministerio de Alabanza Filadelfia.",
+  "display": "standalone",
+  "orientation": "landscape",
+  "start_url": "./",
+  "scope": "./",
+  "background_color": "#05080b",
+  "theme_color": "#05080b",
+  "icons": []
+}
