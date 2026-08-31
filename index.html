@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="screen-orientation" content="landscape">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>Filadelfia — Reproductor de Secuencias</title>
+<style>
+:root{
+ --bg:#06111b;--bg2:#0a1824;--panel:#0b1b29;--panel2:#102637;
+ --edge:#24506d;--cyan:#29c7ff;--cyan2:#7ce1ff;--gold:#e5b93f;
+ --text:#eef8ff;--muted:#8ba4b5;--danger:#ff4f4f;--green:#35e27b;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 50% -10%,#153b55 0,#071521 42%,#03090e 100%);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+button,input{font:inherit}
+.app{max-width:1540px;margin:auto;padding:10px}
+.top{
+ display:grid;grid-template-columns:270px 1fr 265px;gap:12px;align-items:center;
+ background:linear-gradient(180deg,#102638,#07131d);border:1px solid var(--edge);
+ border-radius:8px;padding:9px 12px;box-shadow:0 8px 28px #0008
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand img{width:58px;height:86px;object-fit:contain;object-position:center;border:1px solid #6e8fa4;box-shadow:0 0 12px #000}
+.brand-title{font-family:Georgia,serif;font-size:28px;letter-spacing:2px;color:#fff}
+.brand-sub{font-size:10px;color:#9cc6d8;letter-spacing:1.8px;margin-top:2px}
+.transport{display:flex;align-items:center;gap:7px;min-width:0}
+.tbtn,.smallbtn{
+ border:1px solid #527184;border-radius:5px;color:#fff;background:linear-gradient(#203746,#0d1820);
+ cursor:pointer;box-shadow:inset 0 1px #ffffff18
+}
+.tbtn{width:50px;height:48px;font-size:21px}.tbtn:hover,.smallbtn:hover{border-color:var(--cyan)}
+.tbtn.active{color:var(--cyan2);border-color:var(--cyan);box-shadow:0 0 9px #29c7ff44}
+.timebox{min-width:175px;text-align:center}
+.clock{font:25px "Courier New",monospace;color:var(--cyan);text-shadow:0 0 9px #29c7ff66}
+.subclock{font:11px monospace;color:#7c9aaa}
+.wave{height:50px;flex:1;min-width:120px;background:#02080d;border:1px solid #284352;border-radius:4px;overflow:hidden;position:relative}
+.wave canvas{width:100%;height:100%}
+.masterbox{display:flex;align-items:center;gap:10px;border-left:1px solid #27404f;padding-left:15px}
+.masterlabel{font-size:10px;color:#a8bdc9;white-space:nowrap}.masterknob{
+ width:58px;height:58px;border-radius:50%;border:4px solid #6d7b83;
+ background:radial-gradient(circle at 35% 30%,#eef4f6 0,#9da6aa 28%,#444c51 45%,#111 72%);
+ box-shadow:0 0 0 3px #18242b,0 0 14px #000;position:relative
+}
+.masterknob:after{content:"";position:absolute;width:3px;height:18px;background:#111;left:50%;top:4px;transform:translateX(-50%);border-radius:2px}
+.master-range{width:95px;accent-color:var(--gold)}
+.main{display:grid;grid-template-columns:285px 1fr;gap:10px;margin-top:10px}
+.panel{background:linear-gradient(145deg,#0d1d29,#071018);border:1px solid var(--edge);border-radius:7px;box-shadow:0 8px 25px #0008;overflow:hidden}
+.panel-head{height:48px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid #24506d;color:var(--cyan2);font-weight:bold}
+.folder{font-size:25px;margin-right:9px}.panel-head .right{margin-left:auto;font-size:10px;color:var(--muted)}
+.seq-list{padding:10px;min-height:650px}.seq{
+ width:100%;text-align:left;padding:14px 12px;margin-bottom:9px;border:1px solid #3c5c6c;border-radius:7px;
+ background:linear-gradient(145deg,#173247,#0b1b27);color:#fff;cursor:pointer;position:relative
+}
+.seq:hover{border-color:var(--cyan)}.seq.selected{border-color:var(--cyan);box-shadow:0 0 0 1px #29c7ff55,inset 0 0 30px #29c7ff15}
+.seq .icon{font-size:27px;float:left;margin-right:10px}.seq .name{font-weight:bold;font-size:14px;padding-top:2px}.seq .meta{font-size:10px;color:#8ea8b8;margin-top:5px}
+.seq .arrow{position:absolute;right:12px;top:31px;color:var(--cyan);font-size:22px}
+.sidebar-foot{border-top:1px solid #1f3b4c;padding:13px;text-align:center;font-size:10px;color:#718b9b}
+.mixer{min-width:0}
+.mixer-title{display:flex;align-items:center;gap:10px}.mixer-title strong{color:var(--cyan2)}.mixer-title span{margin-left:auto;color:#9cb3c0;font-size:11px}
+.notice{display:none;margin:8px;padding:8px 10px;background:#251d0d;border:1px solid #705a27;border-radius:5px;color:#ead59a;font-size:11px}
+.channels{display:flex;gap:6px;padding:7px;overflow-x:auto;min-height:650px}
+.channel{
+ flex:0 0 108px;min-height:625px;border:1px solid #36576a;border-radius:6px;
+ background:linear-gradient(90deg,#09131b,#132a3a 48%,#09131b);
+ padding:7px 6px;box-shadow:inset 0 0 25px #0008
+}
+.ch-num{text-align:center;color:#6d8b9c;font-size:10px}.ch-name{
+ text-align:center;font-weight:bold;font-size:12px;height:38px;display:flex;align-items:center;justify-content:center;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.panlabel{text-align:center;font-size:9px;color:#9bb0bb;margin-top:2px}
+.pan{display:block;width:68px;height:42px;margin:0 auto 2px;accent-color:var(--cyan)}
+.lr{display:flex;justify-content:space-around;font-size:9px;color:#8198a5}
+.buttons{display:flex;gap:5px;margin:5px 0 8px}.sm{
+ flex:1;height:32px;border:1px solid #526875;border-radius:4px;background:linear-gradient(#263943,#101a20);color:#fff;cursor:pointer;font-weight:bold
+}.sm.solo.on{color:#ffe274;border-color:var(--gold);box-shadow:0 0 8px #e5b93f33}.sm.mute.on{color:#ff7777;border-color:#c23e3e;background:#2a1215}
+.strip{display:grid;grid-template-columns:20px 1fr 30px;gap:6px;height:335px;align-items:stretch}
+.meter{display:flex;flex-direction:column-reverse;gap:2px;padding:2px;background:#020609;border:1px solid #26343c;border-radius:3px}
+.seg{height:7px;background:#162127;border-radius:1px}.seg.on{background:var(--green)}.seg.hot{background:#e8c93b}.seg.clip{background:var(--danger)}
+.scale{display:flex;flex-direction:column;justify-content:space-between;font:8px monospace;color:#78909e;padding:2px 0}
+.fader{
+  position:relative;
+  width:34px;
+  height:100%;
+  margin:0 auto;
+  cursor:ns-resize;
+  outline:none;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.fader::before{
+  content:"";
+  position:absolute;
+  left:13px;
+  top:0;
+  bottom:0;
+  width:8px;
+  background:linear-gradient(90deg,#111a20,#3c4b53,#111a20);
+  border:1px solid #53636b;
+  border-radius:5px;
+  box-shadow:inset 0 0 5px #000,0 0 3px #000;
+}
+.fader::after{
+  content:"";
+  position:absolute;
+  left:16px;
+  top:0;
+  bottom:0;
+  width:2px;
+  background:rgba(0,0,0,.55);
+  pointer-events:none;
+}
+.fader-knob{
+  position:absolute;
+  left:3px;
+  width:28px;
+  height:30px;
+  transform:translateY(-50%);
+  border:1px solid #8f9ba0;
+  border-radius:4px;
+  background:linear-gradient(90deg,#6d777c 0,#e9edef 18%,#aeb7bb 48%,#f7f8f8 62%,#6a7479 100%);
+  box-shadow:0 2px 5px #000,inset 1px 0 #fff8,inset -1px 0 #263239;
+  pointer-events:none;
+}
+.fader:hover .fader-knob,.fader:focus-visible .fader-knob{
+  border-color:var(--cyan);
+  box-shadow:0 0 8px #29c7ff55,0 2px 5px #000,inset 1px 0 #fff8;
+}
+.fader.dragging .fader-knob{
+  border-color:var(--cyan);
+  box-shadow:0 0 10px #29c7ff77,0 2px 5px #000,inset 1px 0 #fff8;
+}
+.db{db{margin-top:5px;background:#02070a;border:1px solid #253b49;border-radius:3px;color:var(--cyan);font:11px monospace;text-align:center;padding:5px}
+.mutebottom{width:100%;margin-top:7px}
+.bottom{
+ margin-top:10px;display:grid;grid-template-columns:285px 1fr 285px;gap:10px;align-items:center;
+ background:linear-gradient(#102535,#07131d);border:1px solid var(--edge);border-radius:7px;padding:8px
+}
+.transport2{display:flex;gap:7px}.smallbtn{padding:10px 13px;font-size:12px}.smallbtn.active{color:var(--gold);border-color:var(--gold)}
+.bottom-clock{text-align:center}.bottom-clock .clock{font-size:24px}
+.project{display:flex;justify-content:flex-end;align-items:center;gap:8px}.label{font-size:9px;color:#8ea4b0}
+.num{background:#071017;border:1px solid #395363;color:var(--cyan);padding:7px 8px;width:65px;text-align:center;border-radius:4px}
+.quote{padding:12px;text-align:center;color:#5eb7da;font-size:11px;border-top:1px solid #1e3b4d;margin-top:8px}
+.empty{padding:50px;text-align:center;color:#8199a7}
+@media(max-width:1050px){.top{grid-template-columns:220px 1fr}.masterbox{display:none}.main{grid-template-columns:240px 1fr}.bottom{grid-template-columns:240px 1fr}}
+@media(max-width:720px){.app{padding:5px}.top{grid-template-columns:1fr}.brand{justify-content:center}.brand img{width:48px;height:70px}.main{grid-template-columns:1fr}.seq-list{min-height:auto}.bottom{grid-template-columns:1fr}.project{justify-content:center}}
+
+.seek{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.wave:hover .seek{opacity:.18}
+.seek::-webkit-slider-thumb{width:14px;height:14px;cursor:pointer}
+.seek::-moz-range-thumb{width:14px;height:14px;cursor:pointer}
+
+.speedbtn{padding:8px 9px;font-size:11px}.speedbtn.active{color:var(--cyan2);border-color:var(--cyan);box-shadow:0 0 7px #29c7ff44}
+</style>
+
+<style id="landscape-mobile-gate">
+  #landscapeGate{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:99999;
+    background:
+      radial-gradient(circle at 50% 40%, #18252c 0%, #080d11 52%, #030507 100%);
+    color:#eaf4f7;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:28px;
+    font-family:Arial,Helvetica,sans-serif;
+  }
+  #landscapeGate .gate-box{
+    max-width:420px;
+    border:1px solid #354851;
+    border-radius:18px;
+    padding:28px 24px;
+    background:linear-gradient(145deg,#111b20,#070c10);
+    box-shadow:0 20px 60px #000a;
+  }
+  #landscapeGate .rotate-icon{
+    font-size:64px;
+    line-height:1;
+    margin-bottom:18px;
+    display:inline-block;
+    animation:rotatePhone 2.2s ease-in-out infinite;
+  }
+  #landscapeGate h2{
+    margin:0 0 10px;
+    color:#f4c53d;
+    font-size:23px;
+  }
+  #landscapeGate p{
+    margin:0;
+    color:#b8c7cd;
+    font-size:15px;
+    line-height:1.5;
+  }
+  @keyframes rotatePhone{
+    0%,100%{transform:rotate(0deg)}
+    45%,70%{transform:rotate(90deg)}
+  }
+
+  /* On phones in portrait, show only the rotation screen. */
+  @media screen and (max-width: 900px) and (orientation: portrait){
+    #landscapeGate{display:flex}
+    body > *:not(#landscapeGate){visibility:hidden}
+  }
+
+  /* Keep the application usable on a phone once it is landscape. */
+  @media screen and (max-width: 900px) and (orientation: landscape){
+    body{min-width:0}
+  }
+</style>
+</head>
+<body>
+<div id="landscapeGate" aria-live="polite">
+  <div class="gate-box">
+    <div class="rotate-icon" aria-hidden="true">📱↻</div>
+    <h2>Gira tu dispositivo</h2>
+    <p>Para utilizar el DAW de Filadelfia, coloca tu celular en posición horizontal.</p>
+  </div>
+</div>
+
+<div class="app">
+ <header class="top">
+  <div class="brand">
+   <img id="logo" alt="Filadelfia">
+   <div><div class="brand-title">FILADELFIA</div><div class="brand-sub">MINISTERIO DE ALABANZA</div></div>
+  </div>
+  <div class="transport">
+   <button class="tbtn" id="stop" title="Stop">■</button>
+   <button class="tbtn" id="play" title="Reproducir">▶</button>
+   <button class="tbtn" id="pause" title="Pausa">Ⅱ</button>
+   <button class="tbtn" id="loopTop" title="Loop">↻</button>
+   <div class="timebox"><div class="clock" id="clock">00:00:00</div><div class="subclock" id="subclock">00:00 / 00:00</div></div>
+   <div class="wave"><canvas id="wave"></canvas><input id="seek" class="seek" type="range" min="0" max="0" step="0.01" value="0" aria-label="Posición de reproducción"></div>
+  </div>
+  <div class="masterbox">
+   <div class="masterlabel">VOLUMEN<br>MAESTRO</div><div class="masterknob"></div>
+   <input class="master-range" id="master" type="range" min="0" max="1" step=".01" value=".9">
+  </div>
+ </header>
+
+ <section class="main">
+  <aside class="panel">
+   <div class="panel-head"><span class="folder">📁</span> SECUENCIAS DISPONIBLES</div>
+   <div class="seq-list" id="list"><div class="empty">Cargando secuencias…</div></div>
+   <div class="sidebar-foot">© 2026 Ministerio de Alabanza Filadelfia<br>Reproductor multipista</div>
+  </aside>
+  <main class="panel mixer">
+   <div class="panel-head mixer-title"><span class="folder">📂</span><strong id="title">Seleccione una secuencia</strong><span id="count"></span></div>
+   <div class="notice" id="notice"></div>
+   <div class="channels" id="channels"><div class="empty">Seleccione una secuencia para cargar sus pistas.</div></div>
+  </main>
+ </section>
+
+ <section class="bottom">
+  <div class="transport2">
+   <button class="smallbtn" id="back">|◀ 10s</button>
+   <button class="smallbtn" id="loopBottom">↻ LOOP</button>
+   <button class="smallbtn" id="next">10s ▶|</button>
+  </div>
+  <div class="bottom-clock"><div class="clock" id="clock2">00:00:00</div><div class="subclock" id="subclock2">00:00 / 00:00</div></div>
+  <div class="project">
+   <span class="label">PISTAS</span><span class="num" id="tracksN">--</span>
+   <span class="label">BPM</span><span class="num">120</span>
+   <span class="label">TONO</span><span class="num">—</span>
+  </div>
+ </section>
+ <div class="quote">“Cantad a Jehová con acción de gracias; cantad salmos a nuestro Dios con arpa.” &nbsp; Salmo 147:7</div>
+</div>
+
+<script>
+const BASE="https://f005.backblazeb2.com/file/daw-filadelfia-audios/Secuencias/";
+const $=id=>document.getElementById(id);
+let ctx=null,masterGain=null,tracks=[],duration=0,playing=false,position=0,loop=false,raf=0;
+let masterStartTime=0,masterOffset=0,playbackRate=1;
+
+function esc(s){return String(s??"").replace(/[&<>\"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
+function fmt(sec){sec=Math.max(0,Number(sec)||0);let h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=Math.floor(sec%60);return [h,m,s].map(v=>String(v).padStart(2,"0")).join(":")}
+function fmtShort(sec){sec=Math.max(0,Number(sec)||0);let m=Math.floor(sec/60),s=Math.floor(sec%60);return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")}
+function url(folder,file){return BASE+String(folder).split("/").map(encodeURIComponent).join("/")+"/"+String(file).split("/").map(encodeURIComponent).join("/")}
+async function getJSON(u){const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);return r.json()}
+function parseTrack(v){
+  let file=typeof v==="string"?v:(v.file||v.url||v.audio||"");
+  let name=typeof v==="object"&&v.name?v.name:"";
+  let m=String(file).split("/").pop().match(/^pista-(\d+)-(.+?)\.(mp3|wav|ogg|m4a)$/i);
+  if(!m)return null;
+  return {number:+m[1],name:name||m[2],file,el:null,source:null,gain:null,panNode:null,volume:1,pan:0,muted:false,solo:false,error:false,buffer:null};
+}
+async function initAudio(){
+  if(ctx)return;
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  masterGain=ctx.createGain();
+  masterGain.gain.value=+$('master').value;
+  masterGain.connect(ctx.destination);
+}
+function updateLoadStatus(done,total){
+  const pct=total?Math.round(done/total*100):0;
+  show("Cargando pistas en memoria: "+done+"/"+total+" ("+pct+"%). Espere a que termine antes de reproducir o buscar.");
+}
+async function decodeTrack(t,folder,index,total){
+  try{
+    const r=await fetch(url(folder,t.file),{cache:"no-store"});
+    if(!r.ok)throw Error("HTTP "+r.status);
+    const data=await r.arrayBuffer();
+    t.buffer=await ctx.decodeAudioData(data);
+    duration=Math.max(duration,Number(t.buffer.duration)||0);
+    return true;
+  }catch(e){t.error=true;console.warn("No se pudo cargar "+t.file,e);return false}
+}
+async function loadSequences(){
+  try{
+    const d=await getJSON(BASE+"index-secuencia.json");
+    const arr=d.sequences||d.secuencias||d.folders||[];
+    $("list").innerHTML="";
+    if(!arr.length){$("list").innerHTML='<div class="empty">No hay secuencias disponibles.</div>';return}
+    arr.forEach(s=>{
+      const name=s.name||s.title||s.nombre||s.folder||"Sin nombre",folder=s.folder||s.path||s.slug||"";
+      const b=document.createElement("button");b.className="seq";
+      b.innerHTML='<span class="icon">♫</span><div class="name">'+esc(name)+'</div><div class="meta">'+esc(folder)+'</div><span class="arrow">›</span>';
+      b.onclick=()=>loadSequence({name,folder},b);$("list").appendChild(b);
+    });
+  }catch(e){console.error(e);$("list").innerHTML='<div class="empty">No se pudo leer index-secuencia.json</div>'}
+}
+async function loadSequence(s,b){
+  stopAll();
+  document.querySelectorAll(".seq").forEach(x=>x.classList.remove("selected"));b.classList.add("selected");
+  $("title").textContent=s.name;$("count").textContent="";$("tracksN").textContent="--";hide();duration=0;tracks=[];
+  try{
+    const d=await getJSON(url(s.folder,"index-pista.json"));
+    const arr=d.tracks||d.pistas||d.audio||[];
+    tracks=arr.map(parseTrack).filter(Boolean).sort((a,b)=>a.number-b.number);
+    if(!tracks.length)throw Error("No hay pistas válidas en index-pista.json");
+    $("count").textContent=tracks.length+" pistas";$("tracksN").textContent=tracks.length;render();await initAudio();
+
+    // NUEVO: carga y decodifica TODAS las pistas antes de habilitar la reproducción.
+    // Así todas parten del mismo reloj de AudioContext y el seek no depende del
+    // reloj independiente de varios elementos <audio>.
+    show("Preparando la secuencia: cargando pistas en memoria…");
+    let done=0;
+    await Promise.all(tracks.map(async t=>{
+      const ok=await decodeTrack(t,s.folder,done,tracks.length);done++;updateLoadStatus(done,tracks.length);return ok;
+    }));
+    const bad=tracks.filter(t=>t.error);
+    if(tracks.every(t=>t.error))throw Error("No se pudo cargar ninguna pista.");
+    connect();
+    $("subclock").textContent="00:00 / "+fmtShort(duration);$("subclock2").textContent=$("subclock").textContent;
+    renderErrors();drawWave();meterLoop();
+    if(!bad.length)hide();
+    else show("Secuencia lista, pero no se pudieron cargar: "+bad.map(t=>t.file).join(", "));
+  }catch(e){console.error(e);$("channels").innerHTML='<div class="empty">No fue posible cargar la secuencia.</div>';show("Error: "+e.message)}
+}
+function render(){
+  $("channels").innerHTML="";
+  tracks.forEach((t,i)=>{
+    const c=document.createElement("div");c.className="channel";
+    c.innerHTML='<div class="ch-num">'+t.number+'</div><div class="ch-name" title="'+esc(t.name)+'">'+esc(t.name)+'</div>'+
+      '<div class="panlabel">PAN</div><input class="pan" type="range" min="-1" max="1" step=".01" value="0"><div class="lr"><span>L</span><span>C</span><span>R</span></div>'+
+      '<div class="buttons"><button class="sm solo">S</button><button class="sm mute">M</button></div>'+
+      '<div class="strip"><div class="meter">'+('<i class="seg"></i>'.repeat(30))+'</div><div class="scale"><span>10</span><span>5</span><span>0</span><span>-10</span><span>-20</span><span>-40</span><span>-60</span></div><div class="fader" role="slider" tabindex="0" aria-label="Nivel del canal" aria-valuemin="-60" aria-valuemax="10" aria-valuenow="0"><div class="fader-knob"></div></div></div>'+
+      '<div class="db">0.0</div><button class="sm mutebottom">MUTE</button>';
+    const pan=c.querySelector(".pan"),f=c.querySelector(".fader"),knob=c.querySelector(".fader-knob"),solo=c.querySelector(".solo"),mute=c.querySelector(".mute"),mb=c.querySelector(".mutebottom"),db=c.querySelector(".db");
+    pan.oninput=e=>{t.pan=+e.target.value;if(t.panNode)t.panNode.pan.value=t.pan};
+    const dbToPos=dbv=>{dbv=Math.max(-60,Math.min(10,dbv));return dbv<=0?0.75*((dbv+60)/60):0.75+0.25*(dbv/10)};
+    const posToDb=pos=>{pos=Math.max(0,Math.min(1,pos));return pos<=0.75?-60+(pos/0.75)*60:((pos-0.75)/0.25)*10};
+    const setFader=dbValue=>{dbValue=Math.max(-60,Math.min(10,Number(dbValue)||0));t.volume=Math.pow(10,dbValue/20);f.dataset.db=dbValue;f.setAttribute("aria-valuenow",dbValue.toFixed(1));db.textContent=dbValue<=-59.9?"-∞":dbValue.toFixed(1);knob.style.top=((1-dbToPos(dbValue))*100)+"%";applyGains()};
+    const faderFromPointer=e=>{const r=f.getBoundingClientRect();const pos=1-Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));setFader(Math.round(posToDb(pos)*10)/10)};
+    f.addEventListener("pointerdown",e=>{e.preventDefault();f.classList.add("dragging");f.setPointerCapture?.(e.pointerId);faderFromPointer(e)});
+    f.addEventListener("pointermove",e=>{if(f.classList.contains("dragging"))faderFromPointer(e)});
+    const releaseFader=()=>f.classList.remove("dragging");f.addEventListener("pointerup",releaseFader);f.addEventListener("pointercancel",releaseFader);f.addEventListener("lostpointercapture",releaseFader);f.addEventListener("dblclick",()=>setFader(0));
+    f.addEventListener("keydown",e=>{let v=Number(f.dataset.db||0);if(e.key==="ArrowUp")v+=e.shiftKey?1:.1;else if(e.key==="ArrowDown")v-=e.shiftKey?1:.1;else if(e.key==="PageUp")v+=5;else if(e.key==="PageDown")v-=5;else if(e.key==="Home")v=-60;else if(e.key==="End")v=10;else return;e.preventDefault();setFader(Math.round(Math.max(-60,Math.min(10,v))*10)/10)});
+    setFader(0);
+    const toggleMute=()=>{t.muted=!t.muted;mute.classList.toggle("on",t.muted);mb.classList.toggle("on",t.muted);applyGains()};
+    mute.onclick=toggleMute;mb.onclick=toggleMute;solo.onclick=()=>{t.solo=!t.solo;solo.classList.toggle("on",t.solo);applyGains()};
+    $("channels").appendChild(c);
+  });
+}
+function connect(){
+  tracks.forEach(t=>{
+    if(!t.buffer)return;
+    if(!t.gain)t.gain=ctx.createGain();
+    if(!t.panNode)t.panNode=ctx.createStereoPanner();
+    try{t.gain.disconnect()}catch{} try{t.panNode.disconnect()}catch{}
+    t.gain.connect(t.panNode).connect(masterGain);
+  });
+  applyGains();
+}
+function applyGains(){
+  const any=tracks.some(t=>t.solo);
+  tracks.forEach(t=>{if(t.gain)t.gain.gain.value=(t.muted||(any&&!t.solo))?0:t.volume;if(t.panNode)t.panNode.pan.value=t.pan});
+}
+function current(){return playing?Math.min(duration,masterOffset+(ctx.currentTime-masterStartTime)*playbackRate):position}
+function stopSources(){tracks.forEach(t=>{if(t.source){try{t.source.onended=null;t.source.stop()}catch{}try{t.source.disconnect()}catch{}t.source=null}})}
+function scheduleSources(p){
+  if(!ctx)return;
+  stopSources();
+  const when=ctx.currentTime+0.08;
+  masterStartTime=when;masterOffset=p;
+  tracks.forEach(t=>{
+    if(!t.buffer||t.error)return;
+    const src=ctx.createBufferSource();src.buffer=t.buffer;src.playbackRate.value=playbackRate;
+    src.connect(t.gain);t.source=src;
+    try{src.start(when,p)}catch(e){console.warn(e)}
+  });
+}
+async function seekTo(p){
+  p=Math.max(0,Math.min(duration,Number(p)||0));
+  if(playing){scheduleSources(p);position=p}else position=p;
+  ui();drawWave();
+}
+async function playFrom(p){
+  if(!tracks.some(t=>t.buffer&&!t.error))return;
+  await initAudio();await ctx.resume();p=Math.max(0,Math.min(duration,p));
+  if(p>=duration-.001)p=0;
+  scheduleSources(p);position=p;playing=true;ui();tick();
+}
+function pause(){if(!playing)return;position=current();stopSources();playing=false;cancelAnimationFrame(raf);ui()}
+function stopAll(){playing=false;position=0;masterOffset=0;stopSources();cancelAnimationFrame(raf);ui()}
+function ui(){
+  const p=current(),txt=fmt(p),short=fmtShort(p)+" / "+fmtShort(duration);
+  $("clock").textContent=txt;$("clock2").textContent=txt;$("subclock").textContent=short;$("subclock2").textContent=short;
+  if($("seek")){$("seek").max=Math.max(0,duration);$("seek").value=p}
+  $("play").classList.toggle("active",playing);
+  document.querySelectorAll("[data-speed]").forEach(b=>b.classList.toggle("active",Number(b.dataset.speed)===playbackRate));
+  const speedLabel=$("speedValue");if(speedLabel)speedLabel.textContent=playbackRate.toFixed(2)+"×";
+}
+function tick(){
+  ui();drawWave();
+  if(playing){
+    if(current()>=duration-.03){
+      if(loop){scheduleSources(0);position=0}else{position=duration;stopSources();playing=false;ui();return}
+    }
+    raf=requestAnimationFrame(tick);
+  }
+}
+function drawWave(){
+  const c=$("wave"),r=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);
+  const x=c.getContext("2d");x.setTransform(d,0,0,d,0,0);const w=r.width,h=r.height;x.clearRect(0,0,w,h);x.strokeStyle="#17415a";x.beginPath();for(let i=0;i<w;i+=7){let a=5+Math.abs(Math.sin(i*.23))*16;x.moveTo(i,h/2-a);x.lineTo(i,h/2+a)}x.stroke();
+  const p=duration?current()/duration:0;x.fillStyle="#29c7ff";x.fillRect(0,h/2-1,w*p,2);x.fillStyle="#e5b93f";x.fillRect(Math.max(0,w*p-1),0,2,h);
+}
+function meterLoop(){
+  document.querySelectorAll(".channel").forEach((c,i)=>{const t=tracks[i],lev=t?.source?(0.25+Math.random()*.7):0;c.querySelectorAll(".seg").forEach((s,n)=>{s.classList.toggle("on",n<lev*30);s.classList.toggle("hot",n>24&&n<lev*30);s.classList.toggle("clip",n>28&&n<lev*30)})});
+  if(tracks.length)requestAnimationFrame(meterLoop)
+}
+function renderErrors(){const bad=tracks.filter(t=>t.error);if(bad.length)show("No se pudieron cargar: "+bad.map(t=>t.file).join(", "))}
+function show(x){$("notice").textContent=x;$("notice").style.display="block"}function hide(){$("notice").style.display="none"}
+function setSpeed(v){playbackRate=Number(v)||1;if(playing){const p=current();scheduleSources(p);position=p}ui()}
+$("play").onclick=()=>playing?pause():playFrom(current());$("pause").onclick=pause;$("stop").onclick=stopAll;
+$("master").oninput=e=>{if(masterGain)masterGain.gain.value=+e.target.value};
+$("seek").oninput=e=>seekTo(e.target.value);
+$("back").onclick=()=>seekTo(Math.max(0,current()-10));$("next").onclick=()=>seekTo(Math.min(duration,current()+10));
+function toggleLoop(){loop=!loop;$("loopTop").classList.toggle("active",loop);$("loopBottom").classList.toggle("active",loop)}
+$("loopTop").onclick=toggleLoop;$("loopBottom").onclick=toggleLoop;
+// Velocidades globales del secuenciador: 0.50× y 0.75× añadidas.
+const speedBox=document.createElement("div");speedBox.style.cssText="display:flex;align-items:center;gap:5px;margin-left:4px;flex-wrap:wrap";
+speedBox.innerHTML='<span style="font:10px Arial;color:#9cb3c0">VELOCIDAD</span>'+[0.5,0.75,1,1.25,1.5,2].map(v=>'<button class="smallbtn speedbtn" data-speed="'+v+'">'+v+'×</button>').join('');
+$("transport2").appendChild(speedBox);
+speedBox.querySelectorAll("[data-speed]").forEach(b=>b.onclick=()=>setSpeed(b.dataset.speed));
+loadSequences();ui();
+</script>
+
+<script id="orientation-lock">
+(function(){
+  function tryLandscapeLock(){
+    try{
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock("landscape").catch(function(){});
+      }
+    }catch(e){}
+  }
+
+  // Browsers generally allow orientation locking only for installed
+  // applications/fullscreen contexts. The portrait gate above remains
+  // the fallback for ordinary browser tabs.
+  window.addEventListener("load", function(){
+    tryLandscapeLock();
+  });
+
+  window.addEventListener("orientationchange", function(){
+    setTimeout(tryLandscapeLock, 150);
+  });
+})();
+</script>
+</body>
+</html>
